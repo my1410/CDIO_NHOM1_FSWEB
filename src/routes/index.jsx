@@ -1,0 +1,105 @@
+import { createBrowserRouter } from "react-router-dom";
+
+import MainLayout from "../layouts/MainLayout";
+
+// USER PAGES
+import HomePage from "../pages/HomePage";
+import ProductsPage from "../pages/ProductsPage";
+import ProductDetailPage from "../pages/ProductDetailPage";
+import LoginPage from "../pages/LoginPage";
+import RegisterPage from "../pages/RegisterPage";
+import CartPage from "../pages/CartPage";
+import CheckoutPage from "../pages/CheckoutPage";
+import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
+// ADMIN
+import AdminLayout from "../components/layout/AdminLayout";
+
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminProductsPage from "../pages/admin/AdminProductsPage";
+import AdminCreateProductPage from "../pages/admin/AdminCreateProductPage";
+import AdminEditProductPage from "../pages/admin/AdminEditProductPage";
+import AdminLoginPage from "../pages/admin/AdminLoginPage";
+
+const router = createBrowserRouter([
+  // USER
+  {
+    path: "/",
+    element: <MainLayout />,
+    children: [
+      {
+        index: true,
+        element: <HomePage />,
+      },
+      {
+        path: "checkout",
+        element: <CheckoutPage />,
+      },
+      {
+        path: "orders",
+        element: <AdminOrdersPage />,
+      },
+      {
+        path: "products",
+        element: <ProductsPage />,
+      },
+
+      {
+        path: "product/:id",
+        element: <ProductDetailPage />,
+      },
+
+      {
+        path: "cart",
+        element: <CartPage />,
+      },
+
+      {
+        path: "login",
+        element: <LoginPage />,
+      },
+
+      {
+        path: "register",
+        element: <RegisterPage />,
+      },
+    ],
+  },
+
+  // ADMIN
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+
+    children: [
+      {
+        index: true,
+        element: <AdminDashboard />,
+      },
+      {
+        path: "/admin/login",
+        element: <AdminLoginPage />,
+      },
+
+      {
+        path: "products",
+        element: <AdminProductsPage />,
+      },
+
+      {
+        path: "products/create",
+        element: <AdminCreateProductPage />,
+      },
+
+      {
+        path: "products/edit/:id",
+        element: <AdminEditProductPage />,
+      },
+      {
+        path: "orders",
+        element: <AdminOrdersPage />,
+      },
+    ],
+  },
+]);
+
+export default router;
