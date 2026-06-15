@@ -35,4 +35,7 @@ backend/.env
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.sw?node_modules/
+.env
+backend/node_modules/
+backend/.env

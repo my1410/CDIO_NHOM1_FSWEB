@@ -19,23 +19,20 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const LoginPage = () => {
-  // 1. Khởi tạo các State để quản lý dữ liệu người dùng nhập vào và hiệu ứng Loading
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // 2. Hàm xử lý logic khi người dùng nhấn nút "Đăng nhập"
   const handleLogin = async () => {
-    // Kiểm tra nhanh tính hợp lệ trước khi gửi request
     if (!email || !password) {
       return message.warning("Vui lòng nhập đầy đủ Email và Mật khẩu!");
     }
 
     setLoading(true);
+
     try {
-      // Gọi chính xác API đăng nhập của Backend đã hoàn thiện ở bước trước
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
         {
@@ -44,22 +41,30 @@ const LoginPage = () => {
         },
       );
 
-      // Nếu Backend xác thực tài khoản thành công
       if (response.data.token) {
         message.success("Đăng nhập thành công! Chào mừng quay trở lại 🎉");
 
-        // 🌟 ĐIỂM QUAN TRỌNG: Lưu token vào localStorage để Chatbot và các API khác lấy ra dùng ngầm
         localStorage.setItem("token", response.data.token);
 
-        // Điều hướng người dùng quay trở lại Trang chủ sau khi đăng nhập thành công
+        localStorage.setItem(
+          "userInfo",
+          JSON.stringify({
+            token: response.data.token,
+            user: response.data.user,
+          }),
+        );
+
+        window.dispatchEvent(new Event("userUpdated"));
+
         navigate("/");
       }
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
-      // Bóc tách câu báo lỗi từ Backend trả về (Ví dụ: "Mật khẩu không đúng", "Email không tồn tại")
+
       const errorMsg =
         error.response?.data?.message ||
         "Đăng nhập thất bại. Vui lòng thử lại!";
+
       message.error(errorMsg);
     } finally {
       setLoading(false);
@@ -93,7 +98,6 @@ const LoginPage = () => {
         }}
       >
         <Row>
-          {/* LEFT - Hình ảnh nền giới thiệu thương hiệu */}
           <Col
             xs={0}
             md={12}
@@ -128,6 +132,7 @@ const LoginPage = () => {
               >
                 Fashion AI
               </h1>
+
               <p
                 style={{
                   fontSize: 22,
@@ -140,7 +145,6 @@ const LoginPage = () => {
             </div>
           </Col>
 
-          {/* RIGHT - Biểu mẫu nhập liệu */}
           <Col xs={24} md={12}>
             <div style={{ padding: "70px 60px" }}>
               <h1
@@ -153,40 +157,40 @@ const LoginPage = () => {
               >
                 Đăng nhập
               </h1>
+
               <p style={{ color: "#6b7280", marginBottom: 40, fontSize: 16 }}>
                 Chào mừng bạn quay trở lại Fashion AI
               </p>
 
-              {/* EMAIL INPUT */}
               <div style={{ marginBottom: 24 }}>
                 <p style={{ marginBottom: 10, fontWeight: 600 }}>Email</p>
+
                 <Input
                   size="large"
                   prefix={<MailOutlined />}
                   placeholder="Nhập email..."
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)} // Lắng nghe sự thay đổi chữ
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   style={{ height: 52, borderRadius: 14 }}
                 />
               </div>
 
-              {/* PASSWORD INPUT */}
               <div style={{ marginBottom: 18 }}>
                 <p style={{ marginBottom: 10, fontWeight: 600 }}>Mật khẩu</p>
+
                 <Input.Password
                   size="large"
                   prefix={<LockOutlined />}
                   placeholder="Nhập mật khẩu..."
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)} // Lắng nghe sự thay đổi chữ
-                  onPressEnter={handleLogin} // Nhấn Enter ở ô mật khẩu cũng tự kích hoạt đăng nhập
+                  onChange={(e) => setPassword(e.target.value)}
+                  onPressEnter={handleLogin}
                   disabled={loading}
                   style={{ height: 52, borderRadius: 14 }}
                 />
               </div>
 
-              {/* OPTIONS */}
               <div
                 style={{
                   display: "flex",
@@ -198,18 +202,18 @@ const LoginPage = () => {
                 }}
               >
                 <Checkbox disabled={loading}>Ghi nhớ đăng nhập</Checkbox>
+
                 <a href="#" style={{ color: "#2563eb", fontWeight: 500 }}>
                   Quên mật khẩu?
                 </a>
               </div>
 
-              {/* LOGIN BUTTON */}
               <Button
                 type="primary"
                 block
                 size="large"
-                onClick={handleLogin} // Ráp hàm xử lý sự kiện kích hoạt API
-                loading={loading} // Tự hiển thị vòng xoay loading chặn người dùng bấm liên tục
+                onClick={handleLogin}
+                loading={loading}
                 style={{
                   height: 55,
                   borderRadius: 14,
@@ -223,7 +227,6 @@ const LoginPage = () => {
 
               <Divider>Hoặc</Divider>
 
-              {/* SOCIAL BUTTONS */}
               <div style={{ display: "flex", gap: 15, marginBottom: 35 }}>
                 <Button
                   icon={<GoogleOutlined />}
@@ -238,6 +241,7 @@ const LoginPage = () => {
                 >
                   Google
                 </Button>
+
                 <Button
                   icon={<FacebookFilled />}
                   size="large"
@@ -253,9 +257,12 @@ const LoginPage = () => {
                 </Button>
               </div>
 
-              {/* REGISTER LINK */}
               <div
-                style={{ textAlign: "center", fontSize: 16, color: "#6b7280" }}
+                style={{
+                  textAlign: "center",
+                  fontSize: 16,
+                  color: "#6b7280",
+                }}
               >
                 Bạn chưa có tài khoản?{" "}
                 <Link

@@ -126,6 +126,60 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// GET PROFILE
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tài khoản",
+      });
+    }
+
+    user.name = req.body.name || user.name;
+    user.phone = req.body.phone || user.phone;
+    user.address = req.body.address || user.address;
+
+    const updatedUser = await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật thông tin thành công",
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi cập nhật profile: " + error.message,
+    });
+  }
+};
+
 // Nhớ cập nhật module.exports ở cuối file để export thêm getUserProfile nhé!
 // ... Toàn bộ code các hàm register, login, getUserProfile bên trên giữ nguyên ...
 
@@ -134,4 +188,5 @@ module.exports = {
   register,
   login,
   getUserProfile,
+  updateProfile,
 };

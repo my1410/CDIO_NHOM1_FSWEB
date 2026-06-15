@@ -11,6 +11,8 @@ import RegisterPage from "../pages/RegisterPage";
 import CartPage from "../pages/CartPage";
 import CheckoutPage from "../pages/CheckoutPage";
 import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
+import ProfilePage from "../pages/ProfilePage";
+import AiImageSearchPage from "../pages/AiImageSearchPage";
 // ADMIN
 import AdminLayout from "../components/layout/AdminLayout";
 
@@ -29,6 +31,14 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
+      },
+      {
+        path: "ai-image-search",
+        element: <AiImageSearchPage />,
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
       },
       {
         path: "checkout",
