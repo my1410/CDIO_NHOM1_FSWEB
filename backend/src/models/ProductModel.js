@@ -87,6 +87,10 @@ const ProductSchema = new mongoose.Schema(
       required: [true, "Vui lòng nhập số lượng tồn kho"],
       default: 0,
     },
+    lowStockThreshold: {
+      type: Number,
+      default: 5,
+    },
 
     rating: {
       type: Number,

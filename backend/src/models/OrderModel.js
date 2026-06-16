@@ -1,6 +1,49 @@
-// src/models/OrderModel.js
-
 const mongoose = require("mongoose");
+
+const OrderItemSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+
+    qty: {
+      type: Number,
+      required: true,
+      default: 1,
+    },
+
+    image: {
+      type: String,
+      default: "",
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    size: {
+      type: String,
+      default: "",
+    },
+
+    color: {
+      type: String,
+      default: "",
+    },
+
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ProductModel",
+      required: true,
+    },
+  },
+  {
+    _id: false,
+  },
+);
 
 const OrderSchema = new mongoose.Schema(
   {
@@ -10,52 +53,13 @@ const OrderSchema = new mongoose.Schema(
       required: true,
     },
 
-    orderItems: [
-      {
-        name: {
-          type: String,
-          required: true,
-        },
-
-        qty: {
-          type: Number,
-          required: true,
-        },
-
-        image: {
-          type: String,
-          required: true,
-        },
-
-        price: {
-          type: Number,
-          required: true,
-        },
-
-        size: {
-          type: String,
-          default: "",
-        },
-
-        color: {
-          type: String,
-          default: "",
-        },
-
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "ProductModel",
-          required: true,
-        },
-      },
-    ],
+    orderItems: [OrderItemSchema],
 
     shippingAddress: {
       address: {
         type: String,
         required: true,
       },
-
       phone: {
         type: String,
         required: true,
@@ -68,11 +72,20 @@ const OrderSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // NEW
     status: {
       type: String,
       enum: ["pending", "processing", "shipping", "delivered", "cancelled"],
       default: "pending",
+    },
+
+    trackingNumber: {
+      type: String,
+      default: "",
+    },
+
+    stockDeducted: {
+      type: Boolean,
+      default: false,
     },
 
     isPaid: {
@@ -82,9 +95,9 @@ const OrderSchema = new mongoose.Schema(
 
     paidAt: {
       type: Date,
+      default: null,
     },
 
-    // NEW
     isDelivered: {
       type: Boolean,
       default: false,
@@ -92,6 +105,27 @@ const OrderSchema = new mongoose.Schema(
 
     deliveredAt: {
       type: Date,
+      default: null,
+    },
+
+    processedAt: {
+      type: Date,
+      default: null,
+    },
+
+    shippedAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelledReason: {
+      type: String,
+      default: "",
     },
   },
   {

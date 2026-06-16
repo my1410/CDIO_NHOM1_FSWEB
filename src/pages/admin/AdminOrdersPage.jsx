@@ -1,51 +1,78 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 import {
   Card,
   Table,
-  Tag,
-  message,
   Button,
+  Tag,
   Space,
-  Image,
-  Drawer,
+  Typography,
+  message,
+  Modal,
+  Input,
   Descriptions,
-  Empty,
+  List,
+  Popconfirm,
+  Row,
+  Col,
+  Statistic,
 } from "antd";
-import { EyeOutlined, ReloadOutlined } from "@ant-design/icons";
+
+import {
+  ShoppingCartOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
+  CarOutlined,
+  StopOutlined,
+  EyeOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 const AdminOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [openDrawer, setOpenDrawer] = useState(false);
+
+  const [shippingOpen, setShippingOpen] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState("");
+
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelledReason, setCancelledReason] = useState("");
+
+  const [actionLoading, setActionLoading] = useState("");
+
+  const getAuthHeaders = () => {
+    const adminInfo = JSON.parse(localStorage.getItem("adminInfo") || "{}");
+    const token = adminInfo?.token;
+
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
 
-      const adminInfo = JSON.parse(localStorage.getItem("adminInfo"));
-      const token = adminInfo?.token;
+      const res = await axios.get(
+        "http://localhost:5000/api/orders",
+        getAuthHeaders(),
+      );
 
-      if (!token) {
-        message.warning("Vui lòng đăng nhập admin");
-        setOrders([]);
-        return;
-      }
-
-      const res = await axios.get("http://localhost:5000/api/orders", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.data.success) {
-        setOrders(res.data.orders || []);
-      }
+      setOrders(res.data.orders || []);
     } catch (error) {
       console.log(error);
-      message.error(error.response?.data?.message || "Không thể tải đơn hàng");
+      message.error(
+        error.response?.data?.message || "Không thể tải danh sách đơn hàng",
+      );
     } finally {
       setLoading(false);
     }
@@ -55,277 +82,509 @@ const AdminOrdersPage = () => {
     fetchOrders();
   }, []);
 
-  const getStatusTag = (status) => {
-    const value = status || "pending";
-
-    const colorMap = {
-      pending: "orange",
-      processing: "blue",
-      shipping: "purple",
-      delivered: "green",
-      cancelled: "red",
-    };
-
-    const labelMap = {
-      pending: "Chờ xử lý",
-      processing: "Đang xử lý",
-      shipping: "Đang giao",
-      delivered: "Đã giao",
-      cancelled: "Đã hủy",
-    };
-
-    return (
-      <Tag color={colorMap[value] || "default"}>{labelMap[value] || value}</Tag>
+  const updateOrderInList = (updatedOrder) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order._id === updatedOrder._id ? updatedOrder : order,
+      ),
     );
+
+    setSelectedOrder(updatedOrder);
   };
+
+  const handleConfirmOrder = async (order) => {
+    try {
+      setActionLoading(order._id);
+
+      const res = await axios.put(
+        `http://localhost:5000/api/orders/${order._id}/confirm`,
+        {},
+        getAuthHeaders(),
+      );
+
+      message.success(res.data.message || "Đã xác nhận đơn hàng");
+      updateOrderInList(res.data.order);
+    } catch (error) {
+      console.log(error);
+      message.error(error.response?.data?.message || "Không thể xác nhận đơn");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const openShippingModal = (order) => {
+    setSelectedOrder(order);
+    setTrackingNumber(order.trackingNumber || "");
+    setShippingOpen(true);
+  };
+
+  const handleShippingOrder = async () => {
+    if (!trackingNumber.trim()) {
+      message.warning("Vui lòng nhập mã vận đơn");
+      return;
+    }
+
+    try {
+      setActionLoading(selectedOrder._id);
+
+      const res = await axios.put(
+        `http://localhost:5000/api/orders/${selectedOrder._id}/status`,
+        {
+          status: "shipping",
+          trackingNumber: trackingNumber.trim(),
+        },
+        getAuthHeaders(),
+      );
+
+      message.success("Đã cập nhật đơn hàng sang trạng thái đang giao");
+      updateOrderInList(res.data.order);
+      setShippingOpen(false);
+    } catch (error) {
+      console.log(error);
+      message.error(
+        error.response?.data?.message || "Không thể cập nhật trạng thái",
+      );
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDeliveredOrder = async (order) => {
+    try {
+      setActionLoading(order._id);
+
+      const res = await axios.put(
+        `http://localhost:5000/api/orders/${order._id}/status`,
+        {
+          status: "delivered",
+        },
+        getAuthHeaders(),
+      );
+
+      message.success("Đã cập nhật đơn hàng đã giao");
+      updateOrderInList(res.data.order);
+    } catch (error) {
+      console.log(error);
+      message.error(
+        error.response?.data?.message || "Không thể cập nhật đã giao",
+      );
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const openCancelModal = (order) => {
+    setSelectedOrder(order);
+    setCancelledReason("");
+    setCancelOpen(true);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!cancelledReason.trim()) {
+      message.warning("Vui lòng nhập lý do hủy đơn");
+      return;
+    }
+
+    try {
+      setActionLoading(selectedOrder._id);
+
+      const res = await axios.put(
+        `http://localhost:5000/api/orders/${selectedOrder._id}/status`,
+        {
+          status: "cancelled",
+          cancelledReason: cancelledReason.trim(),
+        },
+        getAuthHeaders(),
+      );
+
+      message.success("Đã hủy đơn hàng");
+      updateOrderInList(res.data.order);
+      setCancelOpen(false);
+    } catch (error) {
+      console.log(error);
+      message.error(error.response?.data?.message || "Không thể hủy đơn hàng");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const getStatusTag = (status) => {
+    switch (status) {
+      case "pending":
+        return <Tag color="default">Chờ duyệt</Tag>;
+      case "processing":
+        return (
+          <Tag color="blue" icon={<SyncOutlined />}>
+            Đang xử lý
+          </Tag>
+        );
+      case "shipping":
+        return (
+          <Tag color="purple" icon={<CarOutlined />}>
+            Đang giao
+          </Tag>
+        );
+      case "delivered":
+        return (
+          <Tag color="green" icon={<CheckCircleOutlined />}>
+            Đã giao
+          </Tag>
+        );
+      case "cancelled":
+        return (
+          <Tag color="red" icon={<CloseCircleOutlined />}>
+            Đã hủy
+          </Tag>
+        );
+      default:
+        return <Tag>{status || "pending"}</Tag>;
+    }
+  };
+
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(
+    (item) => item.status === "pending",
+  ).length;
+  const shippingOrders = orders.filter(
+    (item) => item.status === "shipping",
+  ).length;
+  const deliveredOrders = orders.filter(
+    (item) => item.status === "delivered",
+  ).length;
 
   const columns = [
     {
       title: "Mã đơn",
       dataIndex: "_id",
-      width: 220,
-      fixed: "left",
-      render: (id) => <b style={{ color: "#111827" }}>{id}</b>,
+      key: "_id",
+      width: 180,
+      render: (id) => <Text copyable>{id}</Text>,
     },
     {
       title: "Khách hàng",
-      dataIndex: "user",
-      width: 180,
-      render: (user) => user?.name || user?.email || "Khách hàng",
+      key: "user",
+      render: (_, record) => (
+        <div>
+          <Text strong>{record.user?.name || "Khách hàng"}</Text>
+          <br />
+          <Text type="secondary">{record.user?.email || ""}</Text>
+        </div>
+      ),
     },
     {
-      title: "Email",
-      dataIndex: "user",
-      width: 220,
-      render: (user) => user?.email || "N/A",
-    },
-    {
-      title: "SĐT",
-      dataIndex: "shippingAddress",
-      width: 140,
-      render: (shippingAddress) => shippingAddress?.phone || "",
-    },
-    {
-      title: "Địa chỉ",
-      dataIndex: "shippingAddress",
-      width: 300,
-      render: (shippingAddress) => shippingAddress?.address || "",
+      title: "Sản phẩm",
+      key: "items",
+      render: (_, record) => (
+        <div>
+          {(record.orderItems || []).slice(0, 2).map((item, index) => (
+            <div key={index}>
+              {item.name} x{item.qty}
+            </div>
+          ))}
+
+          {(record.orderItems || []).length > 2 && (
+            <Text type="secondary">
+              +{record.orderItems.length - 2} sản phẩm khác
+            </Text>
+          )}
+        </div>
+      ),
     },
     {
       title: "Tổng tiền",
       dataIndex: "totalPrice",
-      width: 150,
-      render: (price) => (
-        <b style={{ color: "#ef4444" }}>
-          {(price || 0).toLocaleString("vi-VN")}đ
-        </b>
-      ),
-    },
-    {
-      title: "Thanh toán",
-      dataIndex: "isPaid",
+      key: "totalPrice",
       width: 140,
-      render: (isPaid) =>
-        isPaid ? (
-          <Tag color="green">Đã thanh toán</Tag>
-        ) : (
-          <Tag color="gold">COD</Tag>
-        ),
+      render: (price) => (
+        <Text strong style={{ color: "#ef4444" }}>
+          {Number(price || 0).toLocaleString("vi-VN")}đ
+        </Text>
+      ),
     },
     {
       title: "Trạng thái",
       dataIndex: "status",
-      width: 150,
+      key: "status",
+      width: 140,
       render: (status) => getStatusTag(status),
     },
     {
-      title: "Ngày tạo",
+      title: "Mã vận đơn",
+      dataIndex: "trackingNumber",
+      key: "trackingNumber",
+      width: 150,
+      render: (trackingNumber) => trackingNumber || "Chưa có",
+    },
+    {
+      title: "Ngày đặt",
       dataIndex: "createdAt",
-      width: 180,
-      render: (date) => (date ? new Date(date).toLocaleString("vi-VN") : ""),
+      key: "createdAt",
+      width: 150,
+      render: (date) =>
+        date ? new Date(date).toLocaleDateString("vi-VN") : "",
     },
     {
       title: "Hành động",
-      fixed: "right",
-      width: 120,
+      key: "action",
+      width: 300,
       render: (_, record) => (
-        <Button
-          type="primary"
-          icon={<EyeOutlined />}
-          onClick={() => {
-            setSelectedOrder(record);
-            setOpenDrawer(true);
-          }}
-        >
-          Xem
-        </Button>
+        <Space wrap>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedOrder(record);
+              setDetailOpen(true);
+            }}
+          >
+            Chi tiết
+          </Button>
+
+          {record.status === "pending" && (
+            <Popconfirm
+              title="Xác nhận đơn hàng?"
+              description="Hệ thống sẽ tự động trừ tồn kho sau khi xác nhận."
+              okText="Xác nhận"
+              cancelText="Hủy"
+              onConfirm={() => handleConfirmOrder(record)}
+            >
+              <Button
+                type="primary"
+                loading={actionLoading === record._id}
+                icon={<CheckCircleOutlined />}
+              >
+                Xác nhận
+              </Button>
+            </Popconfirm>
+          )}
+
+          {record.status === "processing" && (
+            <Button
+              type="primary"
+              icon={<CarOutlined />}
+              loading={actionLoading === record._id}
+              onClick={() => openShippingModal(record)}
+            >
+              Đang giao
+            </Button>
+          )}
+
+          {record.status === "shipping" && (
+            <Popconfirm
+              title="Xác nhận đơn đã giao?"
+              okText="Đã giao"
+              cancelText="Hủy"
+              onConfirm={() => handleDeliveredOrder(record)}
+            >
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                loading={actionLoading === record._id}
+              >
+                Đã giao
+              </Button>
+            </Popconfirm>
+          )}
+
+          {!["delivered", "cancelled"].includes(record.status) && (
+            <Button
+              danger
+              icon={<StopOutlined />}
+              onClick={() => openCancelModal(record)}
+            >
+              Hủy
+            </Button>
+          )}
+        </Space>
       ),
     },
   ];
 
   return (
     <div>
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 24,
-          boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
-        }}
-        bodyStyle={{ padding: 28 }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            marginBottom: 24,
-            gap: 20,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                margin: 0,
-                color: "#111827",
-                fontSize: 32,
-                fontWeight: 900,
-              }}
-            >
-              Quản lý đơn hàng
-            </h1>
+      <Title level={2}>Quản lý đơn hàng</Title>
 
-            <p style={{ color: "#6b7280", marginTop: 8, marginBottom: 0 }}>
-              Tổng số: <b>{orders.length}</b> đơn hàng
-            </p>
-          </div>
+      <Text type="secondary">
+        Xác nhận đơn hàng, cập nhật mã vận đơn, trạng thái giao hàng và tự động
+        trừ/cộng lại kho khi xử lý đơn.
+      </Text>
 
-          <Button icon={<ReloadOutlined />} onClick={fetchOrders}>
-            Làm mới
-          </Button>
-        </div>
+      <Row gutter={[20, 20]} style={{ marginTop: 24, marginBottom: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} style={{ borderRadius: 18 }}>
+            <Statistic
+              title="Tổng đơn"
+              value={totalOrders}
+              prefix={<ShoppingCartOutlined />}
+            />
+          </Card>
+        </Col>
 
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} style={{ borderRadius: 18 }}>
+            <Statistic
+              title="Chờ duyệt"
+              value={pendingOrders}
+              valueStyle={{ color: "#f59e0b" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} style={{ borderRadius: 18 }}>
+            <Statistic
+              title="Đang giao"
+              value={shippingOrders}
+              valueStyle={{ color: "#7c3aed" }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false} style={{ borderRadius: 18 }}>
+            <Statistic
+              title="Đã giao"
+              value={deliveredOrders}
+              valueStyle={{ color: "#16a34a" }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card bordered={false} style={{ borderRadius: 20 }}>
         <Table
           rowKey="_id"
-          loading={loading}
           columns={columns}
           dataSource={orders}
-          scroll={{ x: 1800 }}
-          pagination={{
-            pageSize: 8,
-          }}
-          locale={{
-            emptyText: <Empty description="Chưa có đơn hàng nào" />,
-          }}
+          loading={loading}
+          pagination={{ pageSize: 8 }}
+          scroll={{ x: 1500 }}
         />
       </Card>
 
-      <Drawer
+      <Modal
         title="Chi tiết đơn hàng"
-        open={openDrawer}
-        onClose={() => setOpenDrawer(false)}
-        width={760}
+        open={detailOpen}
+        onCancel={() => setDetailOpen(false)}
+        footer={null}
+        width={800}
       >
         {selectedOrder && (
           <>
-            <Descriptions
-              bordered
-              column={1}
-              size="middle"
-              style={{ marginBottom: 24 }}
-            >
+            <Descriptions bordered column={1}>
               <Descriptions.Item label="Mã đơn">
-                {selectedOrder._id}
+                <Text copyable>{selectedOrder._id}</Text>
               </Descriptions.Item>
 
               <Descriptions.Item label="Khách hàng">
-                {selectedOrder.user?.name ||
-                  selectedOrder.user?.email ||
-                  "Khách hàng"}
+                {selectedOrder.user?.name || "Khách hàng"}
               </Descriptions.Item>
 
               <Descriptions.Item label="Email">
-                {selectedOrder.user?.email || "N/A"}
+                {selectedOrder.user?.email || ""}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Số điện thoại">
-                {selectedOrder.shippingAddress?.phone || "N/A"}
+              <Descriptions.Item label="SĐT giao hàng">
+                {selectedOrder.shippingAddress?.phone}
               </Descriptions.Item>
 
               <Descriptions.Item label="Địa chỉ">
-                {selectedOrder.shippingAddress?.address || "N/A"}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Thanh toán">
-                {selectedOrder.isPaid ? (
-                  <Tag color="green">Đã thanh toán</Tag>
-                ) : (
-                  <Tag color="gold">Thanh toán khi nhận hàng</Tag>
-                )}
+                {selectedOrder.shippingAddress?.address}
               </Descriptions.Item>
 
               <Descriptions.Item label="Trạng thái">
                 {getStatusTag(selectedOrder.status)}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Tổng tiền">
-                <b style={{ color: "#ef4444", fontSize: 18 }}>
-                  {(selectedOrder.totalPrice || 0).toLocaleString("vi-VN")}đ
-                </b>
+              <Descriptions.Item label="Mã vận đơn">
+                {selectedOrder.trackingNumber || "Chưa có"}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Ngày tạo">
-                {selectedOrder.createdAt
-                  ? new Date(selectedOrder.createdAt).toLocaleString("vi-VN")
-                  : ""}
+              <Descriptions.Item label="Tổng tiền">
+                <Text strong style={{ color: "#ef4444" }}>
+                  {Number(selectedOrder.totalPrice || 0).toLocaleString(
+                    "vi-VN",
+                  )}
+                  đ
+                </Text>
               </Descriptions.Item>
             </Descriptions>
 
-            <h2 style={{ color: "#111827", fontWeight: 800 }}>
+            <Title level={4} style={{ marginTop: 24 }}>
               Sản phẩm trong đơn
-            </h2>
+            </Title>
 
-            {selectedOrder.orderItems?.length > 0 ? (
-              <Space direction="vertical" style={{ width: "100%" }} size={16}>
-                {selectedOrder.orderItems.map((item, index) => (
-                  <Card key={index} bordered style={{ borderRadius: 16 }}>
-                    <div style={{ display: "flex", gap: 16 }}>
-                      <Image
-                        src={item.image}
-                        width={90}
-                        height={90}
-                        style={{
-                          objectFit: "cover",
-                          borderRadius: 12,
-                        }}
-                        fallback="https://placehold.co/300x300?text=Fashion+AI"
-                      />
+            <List
+              bordered
+              dataSource={selectedOrder.orderItems || []}
+              renderItem={(item) => (
+                <List.Item>
+                  <Space>
+                    <img
+                      src={item.image || "https://placehold.co/80x80"}
+                      alt={item.name}
+                      style={{
+                        width: 60,
+                        height: 60,
+                        objectFit: "cover",
+                        borderRadius: 8,
+                      }}
+                    />
 
-                      <div>
-                        <h3 style={{ margin: 0, color: "#111827" }}>
-                          {item.name}
-                        </h3>
-
-                        <p style={{ margin: "8px 0", color: "#6b7280" }}>
-                          Size: {item.size || "N/A"} | Màu:{" "}
-                          {item.color || "N/A"}
-                        </p>
-
-                        <p style={{ margin: 0 }}>
-                          SL: <b>{item.qty}</b> ×{" "}
-                          <b>{(item.price || 0).toLocaleString("vi-VN")}đ</b>
-                        </p>
-                      </div>
+                    <div>
+                      <Text strong>{item.name}</Text>
+                      <br />
+                      <Text type="secondary">
+                        SL: {item.qty} | Size: {item.size || "Không"} | Màu:{" "}
+                        {item.color || "Không"}
+                      </Text>
                     </div>
-                  </Card>
-                ))}
-              </Space>
-            ) : (
-              <Empty description="Đơn hàng chưa có sản phẩm" />
-            )}
+                  </Space>
+                </List.Item>
+              )}
+            />
           </>
         )}
-      </Drawer>
+      </Modal>
+
+      <Modal
+        title="Cập nhật mã vận đơn"
+        open={shippingOpen}
+        onCancel={() => setShippingOpen(false)}
+        onOk={handleShippingOrder}
+        confirmLoading={actionLoading === selectedOrder?._id}
+        okText="Cập nhật đang giao"
+        cancelText="Hủy"
+      >
+        <Text strong>Mã vận đơn</Text>
+
+        <Input
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value)}
+          placeholder="Ví dụ: GHN123456789"
+          style={{ marginTop: 8 }}
+        />
+      </Modal>
+
+      <Modal
+        title="Hủy đơn hàng"
+        open={cancelOpen}
+        onCancel={() => setCancelOpen(false)}
+        onOk={handleCancelOrder}
+        confirmLoading={actionLoading === selectedOrder?._id}
+        okText="Xác nhận hủy"
+        cancelText="Đóng"
+        okButtonProps={{ danger: true }}
+      >
+        <Text strong>Lý do hủy đơn</Text>
+
+        <TextArea
+          rows={4}
+          value={cancelledReason}
+          onChange={(e) => setCancelledReason(e.target.value)}
+          placeholder="Nhập lý do hủy đơn..."
+          style={{ marginTop: 8 }}
+        />
+      </Modal>
     </div>
   );
 };

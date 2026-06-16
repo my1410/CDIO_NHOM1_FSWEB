@@ -3,36 +3,52 @@ const User = require("../models/UserModel");
 const jwt = require("jsonwebtoken");
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
 };
 
-// @desc    Đăng ký tài khoản mới kèm Xác nhận mật khẩu
+// @desc    Đăng ký tài khoản mới
 // @route   POST /api/auth/register
 const register = async (req, res) => {
   try {
-    // Thêm confirmPassword vào dữ liệu bóc tách từ body
     const { name, email, password, confirmPassword, phone, address } = req.body;
 
-    // 1. Kiểm tra tài khoản tồn tại chưa
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email này đã được đăng ký sử dụng" });
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập đầy đủ họ tên, email và mật khẩu",
+      });
     }
 
-    // 2. Truyền cả trường confirmPassword vào để Mongoose thực hiện validate
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu xác nhận không khớp",
+      });
+    }
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email này đã được đăng ký sử dụng",
+      });
+    }
+
     const user = new User({
       name,
       email,
       password,
-      confirmPassword,
       phone,
       address,
+      role: "customer",
+      status: "active",
     });
+
     await user.save();
 
-    // 3. Trả về thông tin kèm token thành công
     return res.status(201).json({
       success: true,
       message: "Đăng ký tài khoản thành công",
@@ -41,16 +57,21 @@ const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        address: user.address,
         role: user.role,
+        status: user.status,
       },
     });
   } catch (error) {
-    // In lỗi chi tiết ra Terminal để xem file nào, dòng mấy đang bị lỗi
-    console.log("=== BẮT ĐƯỢC LỖI TẠI CONTROLLER ===");
+    console.log("=== REGISTER ERROR ===");
     console.error(error);
-    console.log("====================================");
+    console.log("======================");
 
-    return res.status(400).json({ success: false, message: error.message });
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -60,25 +81,41 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Tìm user theo email
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập email và mật khẩu",
+      });
+    }
+
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Email hoặc Mật khẩu không chính xác",
+        message: "Email hoặc mật khẩu không chính xác",
       });
     }
 
-    // 2. Kiểm tra mật khẩu
+    // Chặn đăng nhập nếu tài khoản bị admin/staff tạm khóa
+    if (user.status === "locked") {
+      return res.status(403).json({
+        success: false,
+        message: user.lockReason
+          ? `Tài khoản của bạn đã bị tạm khóa. Lý do: ${user.lockReason}`
+          : "Tài khoản của bạn đã bị tạm khóa",
+      });
+    }
+
     const isMatch = await user.comparePassword(password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Email hoặc Mật khẩu không chính xác",
+        message: "Email hoặc mật khẩu không chính xác",
       });
     }
 
-    // 3. Đúng mật khẩu -> Trả về token và thông tin user cho React
     return res.status(200).json({
       success: true,
       message: "Đăng nhập thành công",
@@ -87,62 +124,57 @@ const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
+        address: user.address,
         role: user.role,
+        status: user.status,
       },
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Lỗi Server: " + error.message });
+    console.error("LOGIN ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi Server: " + error.message,
+    });
   }
 };
-
-// Thêm hàm này vào cuối file src/controllers/authController.js của bạn
 
 // @desc    Lấy thông tin profile người dùng hiện tại
 // @route   GET /api/auth/profile
 const getUserProfile = async (req, res) => {
   try {
-    // req.user đã được gán dữ liệu từ middleware protect
-    if (req.user) {
-      return res.status(200).json({
-        success: true,
-        user: {
-          _id: req.user._id,
-          name: req.user.name,
-          email: req.user.email,
-          isAdmin: req.user.isAdmin || false,
-        },
+    if (!req.user) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người dùng",
       });
-    } else {
-      return res
-        .status(404)
-        .json({ success: false, message: "Không tìm thấy người dùng" });
     }
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Lỗi Server: " + error.message });
-  }
-};
 
-// GET PROFILE
-const getProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select("-password");
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      user,
+      user: {
+        id: req.user._id,
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phone,
+        address: req.user.address,
+        role: req.user.role,
+        status: req.user.status || "active",
+        lockReason: req.user.lockReason || "",
+      },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Lỗi Server: " + error.message,
     });
   }
 };
 
+// @desc    Cập nhật profile người dùng
+// @route   PUT /api/auth/profile
 const updateProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -165,11 +197,14 @@ const updateProfile = async (req, res) => {
       message: "Cập nhật thông tin thành công",
       user: {
         id: updatedUser._id,
+        _id: updatedUser._id,
         name: updatedUser.name,
         email: updatedUser.email,
         phone: updatedUser.phone,
         address: updatedUser.address,
         role: updatedUser.role,
+        status: updatedUser.status || "active",
+        lockReason: updatedUser.lockReason || "",
       },
     });
   } catch (error) {
@@ -180,10 +215,6 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Nhớ cập nhật module.exports ở cuối file để export thêm getUserProfile nhé!
-// ... Toàn bộ code các hàm register, login, getUserProfile bên trên giữ nguyên ...
-
-// CHỈ GIỮ LẠI DUY NHẤT MỘT KHỐI EXPORT NÀY Ở CUỐI FILE:
 module.exports = {
   register,
   login,

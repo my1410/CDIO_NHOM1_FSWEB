@@ -10,7 +10,6 @@ import LoginPage from "../pages/LoginPage";
 import RegisterPage from "../pages/RegisterPage";
 import CartPage from "../pages/CartPage";
 import CheckoutPage from "../pages/CheckoutPage";
-import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import ProfilePage from "../pages/ProfilePage";
 import AiImageSearchPage from "../pages/AiImageSearchPage";
 // ADMIN
@@ -21,6 +20,9 @@ import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminCreateProductPage from "../pages/admin/AdminCreateProductPage";
 import AdminEditProductPage from "../pages/admin/AdminEditProductPage";
 import AdminLoginPage from "../pages/admin/AdminLoginPage";
+import AdminCustomersPage from "../pages/admin/AdminCustomersPage";
+import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
+import AdminInventoryPage from "../pages/admin/AdminInventoryPage";
 
 const router = createBrowserRouter([
   // USER
@@ -32,6 +34,7 @@ const router = createBrowserRouter([
         index: true,
         element: <HomePage />,
       },
+
       {
         path: "ai-image-search",
         element: <AiImageSearchPage />,
@@ -89,6 +92,10 @@ const router = createBrowserRouter([
         path: "/admin/login",
         element: <AdminLoginPage />,
       },
+      {
+        path: "customers",
+        element: <AdminCustomersPage />,
+      },
 
       {
         path: "products",
@@ -107,6 +114,10 @@ const router = createBrowserRouter([
       {
         path: "orders",
         element: <AdminOrdersPage />,
+      },
+      {
+        path: "inventory",
+        element: <AdminInventoryPage />,
       },
     ],
   },

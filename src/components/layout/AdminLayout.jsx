@@ -10,6 +10,7 @@ import {
   LogoutOutlined,
   HomeOutlined,
   MenuFoldOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 
 const { Header, Sider, Content } = Layout;
@@ -25,6 +26,11 @@ const AdminLayout = () => {
       label: <Link to="/admin">Dashboard</Link>,
     },
     {
+      key: "/admin/customers",
+      icon: <TeamOutlined />,
+      label: <Link to="/admin/customers">Quản lý khách hàng</Link>,
+    },
+    {
       key: "/admin/products",
       icon: <ShoppingOutlined />,
       label: <Link to="/admin/products">Sản phẩm</Link>,
@@ -38,6 +44,10 @@ const AdminLayout = () => {
       key: "/admin/users",
       icon: <UserOutlined />,
       label: <Link to="/admin/users">Người dùng</Link>,
+    },
+    {
+      key: "/admin/inventory",
+      label: <Link to="/admin/inventory">Kho hàng</Link>,
     },
     {
       key: "/admin/analytics",
