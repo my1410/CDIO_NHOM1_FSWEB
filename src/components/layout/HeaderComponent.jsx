@@ -117,7 +117,7 @@ const HeaderComponent = () => {
     },
     {
       key: "orders",
-      label: <Link to="/orders">Đơn hàng của tôi</Link>,
+      label: <Link to="/my-orders">Đơn hàng của tôi</Link>,
     },
     {
       type: "divider",

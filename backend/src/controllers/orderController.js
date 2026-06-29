@@ -342,10 +342,78 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+const cancelMyOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đơn hàng",
+      });
+    }
+
+    // Chỉ chủ đơn hàng mới được hủy
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không có quyền hủy đơn hàng này",
+      });
+    }
+
+    // Chỉ được hủy khi đơn đang chờ xác nhận hoặc đang xử lý
+    const canCancelStatus = ["pending", "processing"];
+
+    if (!canCancelStatus.includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Đơn hàng không đủ điều kiện hủy. Chỉ có thể hủy khi đơn đang chờ xác nhận hoặc đang xử lý.",
+      });
+    }
+
+    // Nếu đơn đã trừ kho thì cộng lại kho
+    if (order.stockDeducted) {
+      for (const item of order.orderItems) {
+        if (item.product) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: {
+              countInStock: item.qty,
+            },
+          });
+        }
+      }
+
+      order.stockDeducted = false;
+    }
+
+    order.status = "cancelled";
+    order.cancelledAt = new Date();
+    order.cancelledReason =
+      req.body.cancelledReason || "Khách hàng yêu cầu hủy đơn";
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Hủy đơn hàng thành công",
+      order,
+    });
+  } catch (error) {
+    console.error("CANCEL MY ORDER ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi hủy đơn hàng",
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
   getAllOrders,
+  cancelMyOrder,
   getOrderById,
   confirmOrder,
   updateOrderStatus,

@@ -40,19 +40,16 @@ const AdminLayout = () => {
       icon: <ShoppingCartOutlined />,
       label: <Link to="/admin/orders">Đơn hàng</Link>,
     },
-    {
-      key: "/admin/users",
-      icon: <UserOutlined />,
-      label: <Link to="/admin/users">Người dùng</Link>,
-    },
+
     {
       key: "/admin/inventory",
       label: <Link to="/admin/inventory">Kho hàng</Link>,
     },
+
     {
-      key: "/admin/analytics",
+      key: "/admin/statistics",
       icon: <BarChartOutlined />,
-      label: <Link to="/admin/analytics">Thống kê</Link>,
+      label: <Link to="/admin/statistics">Thống kê</Link>,
     },
   ];
 

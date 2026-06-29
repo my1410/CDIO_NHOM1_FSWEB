@@ -12,9 +12,10 @@ import CartPage from "../pages/CartPage";
 import CheckoutPage from "../pages/CheckoutPage";
 import ProfilePage from "../pages/ProfilePage";
 import AiImageSearchPage from "../pages/AiImageSearchPage";
+import MyOrdersPage from "../pages/MyOrdersPage";
+
 // ADMIN
 import AdminLayout from "../components/layout/AdminLayout";
-
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import AdminProductsPage from "../pages/admin/AdminProductsPage";
 import AdminCreateProductPage from "../pages/admin/AdminCreateProductPage";
@@ -23,6 +24,7 @@ import AdminLoginPage from "../pages/admin/AdminLoginPage";
 import AdminCustomersPage from "../pages/admin/AdminCustomersPage";
 import AdminOrdersPage from "../pages/admin/AdminOrdersPage";
 import AdminInventoryPage from "../pages/admin/AdminInventoryPage";
+import AdminStatisticsPage from "../pages/admin/AdminStatisticsPage";
 
 const router = createBrowserRouter([
   // USER
@@ -34,43 +36,38 @@ const router = createBrowserRouter([
         index: true,
         element: <HomePage />,
       },
-
       {
-        path: "ai-image-search",
-        element: <AiImageSearchPage />,
+        path: "products",
+        element: <ProductsPage />,
       },
       {
-        path: "profile",
-        element: <ProfilePage />,
+        path: "product/:id",
+        element: <ProductDetailPage />,
+      },
+      {
+        path: "cart",
+        element: <CartPage />,
       },
       {
         path: "checkout",
         element: <CheckoutPage />,
       },
       {
-        path: "orders",
-        element: <AdminOrdersPage />,
+        path: "profile",
+        element: <ProfilePage />,
       },
       {
-        path: "products",
-        element: <ProductsPage />,
+        path: "ai-image-search",
+        element: <AiImageSearchPage />,
       },
-
       {
-        path: "product/:id",
-        element: <ProductDetailPage />,
+        path: "my-orders",
+        element: <MyOrdersPage />,
       },
-
-      {
-        path: "cart",
-        element: <CartPage />,
-      },
-
       {
         path: "login",
         element: <LoginPage />,
       },
-
       {
         path: "register",
         element: <RegisterPage />,
@@ -78,35 +75,33 @@ const router = createBrowserRouter([
     ],
   },
 
+  // ADMIN LOGIN
+  {
+    path: "/admin/login",
+    element: <AdminLoginPage />,
+  },
+
   // ADMIN
   {
     path: "/admin",
     element: <AdminLayout />,
-
     children: [
       {
         index: true,
         element: <AdminDashboard />,
       },
       {
-        path: "/admin/login",
-        element: <AdminLoginPage />,
-      },
-      {
         path: "customers",
         element: <AdminCustomersPage />,
       },
-
       {
         path: "products",
         element: <AdminProductsPage />,
       },
-
       {
         path: "products/create",
         element: <AdminCreateProductPage />,
       },
-
       {
         path: "products/edit/:id",
         element: <AdminEditProductPage />,
@@ -118,6 +113,10 @@ const router = createBrowserRouter([
       {
         path: "inventory",
         element: <AdminInventoryPage />,
+      },
+      {
+        path: "statistics",
+        element: <AdminStatisticsPage />,
       },
     ],
   },

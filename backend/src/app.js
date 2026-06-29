@@ -7,6 +7,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const adminCustomerRoutes = require("./routes/adminCustomerRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const statisticRoutes = require("./routes/statisticRoutes");
 
 const { notFound, errorHandler } = require("./middlewares/errorMiddleware");
 
@@ -28,14 +29,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/admin/customers", adminCustomerRoutes);
 app.use("/api/admin/inventory", inventoryRoutes);
-
-// Route test nhanh
-app.get("/api/test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Backend đang hoạt động",
-  });
-});
+app.use("/api/admin/statistics", statisticRoutes);
 
 // notFound phải nằm cuối cùng
 app.use(notFound);
